@@ -62,6 +62,7 @@ async def initial_fetch():
 
 async def ws_broadcast_loop():
     """Broadcast live signal updates to WebSocket clients."""
+    global _ws_clients
     last_broadcast = 0
     while True:
         await asyncio.sleep(5)
