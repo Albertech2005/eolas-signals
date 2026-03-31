@@ -36,47 +36,101 @@ def aggregate(sources: list[RawMarketData]) -> AggregatedMarketData:
     symbol = sources[0].symbol
     source_names = [s.source for s in sources]
 
-    # Price: use Binance as primary, Bybit as fallback
     binance_src = next((s for s in sources if s.source == "binance"), None)
     bybit_src = next((s for s in sources if s.source == "bybit"), None)
-    okx_src = next((s for s in sources if s.source == "okx"), None)
-    primary = binance_src or bybit_src or sources[0]
+    cg_src = next((s for s in sources if s.source == "coingecko"), None)
 
-    # Average funding rates across exchanges for a more robust signal
-    funding_values = [s.funding_rate for s in sources if s.funding_rate is not None]
-    avg_funding = sum(funding_values) / len(funding_values) if funding_values else None
+    # Price: prefer Binance, then Bybit, then CoinGecko
+    price = _best(
+        binance_src.price if binance_src else None,
+        bybit_src.price if bybit_src else None,
+        cg_src.price if cg_src else None,
+    ) or 0.0
 
-    # OI: prefer Binance (most liquid), average if needed
+    # Futures data: prefer Bybit when Binance is 0/None (geo-blocked)
+    # Bybit is the most reliable non-geo-restricted futures source
     oi = _best(
-        binance_src.open_interest if binance_src else None,
         bybit_src.open_interest if bybit_src else None,
+        binance_src.open_interest if binance_src else None,
+    )
+    oi_change_1h = _best(
+        bybit_src.oi_change_1h if bybit_src else None,
+        binance_src.oi_change_1h if binance_src else None,
+    )
+    oi_change_4h = _best(
+        bybit_src.oi_change_4h if bybit_src else None,
+        binance_src.oi_change_4h if binance_src else None,
     )
 
-    # Klines: prefer Binance
-    klines = (binance_src or bybit_src or sources[0]).klines_1h
+    # Funding rate: average across available sources
+    funding_values = [s.funding_rate for s in sources if s.funding_rate is not None and s.funding_rate != 0]
+    avg_funding = sum(funding_values) / len(funding_values) if funding_values else None
+
+    # Volume: prefer Bybit (futures volume), fallback to Binance
+    volume_24h = _best(
+        bybit_src.volume_24h if bybit_src else None,
+        binance_src.volume_24h if binance_src else None,
+    )
+    volume_1h = _best(
+        bybit_src.volume_1h if bybit_src else None,
+        binance_src.volume_1h if binance_src else None,
+    )
+
+    # Klines: prefer Bybit (it's working), fallback to Binance
+    klines = []
+    if bybit_src and bybit_src.klines_1h:
+        klines = bybit_src.klines_1h
+    elif binance_src and binance_src.klines_1h:
+        klines = binance_src.klines_1h
+
+    # Price changes: prefer Bybit
+    price_change_1h = _best(
+        bybit_src.price_change_1h if bybit_src else None,
+        binance_src.price_change_1h if binance_src else None,
+    )
+    price_change_4h = _best(
+        bybit_src.price_change_4h if bybit_src else None,
+        binance_src.price_change_4h if binance_src else None,
+    )
+    price_change_24h = _best(
+        bybit_src.price_change_24h if bybit_src else None,
+        binance_src.price_change_24h if binance_src else None,
+        cg_src.price_change_24h if cg_src else None,
+    )
+
+    long_short_ratio = _best(
+        bybit_src.long_short_ratio if bybit_src else None,
+        binance_src.long_short_ratio if binance_src else None,
+    )
+    long_liq = _best(
+        bybit_src.long_liquidations_1h if bybit_src else None,
+        binance_src.long_liquidations_1h if binance_src else None,
+    )
+    short_liq = _best(
+        bybit_src.short_liquidations_1h if bybit_src else None,
+        binance_src.short_liquidations_1h if binance_src else None,
+    )
+    next_funding = _best(
+        bybit_src.next_funding_time if bybit_src else None,
+        binance_src.next_funding_time if binance_src else None,
+    )
 
     return AggregatedMarketData(
         symbol=symbol,
-        price=primary.price,
-        price_change_1h=_best(primary.price_change_1h, *(s.price_change_1h for s in sources)),
-        price_change_4h=_best(primary.price_change_4h, *(s.price_change_4h for s in sources)),
-        price_change_24h=_best(primary.price_change_24h, *(s.price_change_24h for s in sources)),
-        volume_24h=_best(primary.volume_24h, *(s.volume_24h for s in sources)),
-        volume_1h=_best(primary.volume_1h, *(s.volume_1h for s in sources)),
+        price=price,
+        price_change_1h=price_change_1h,
+        price_change_4h=price_change_4h,
+        price_change_24h=price_change_24h,
+        volume_24h=volume_24h,
+        volume_1h=volume_1h,
         open_interest=oi,
-        oi_change_1h=_best(primary.oi_change_1h, *(s.oi_change_1h for s in sources)),
-        oi_change_4h=_best(primary.oi_change_4h, *(s.oi_change_4h for s in sources)),
+        oi_change_1h=oi_change_1h,
+        oi_change_4h=oi_change_4h,
         funding_rate=avg_funding,
-        next_funding_time=primary.next_funding_time,
-        long_liquidations_1h=_best(
-            primary.long_liquidations_1h, *(s.long_liquidations_1h for s in sources)
-        ),
-        short_liquidations_1h=_best(
-            primary.short_liquidations_1h, *(s.short_liquidations_1h for s in sources)
-        ),
-        long_short_ratio=_best(
-            primary.long_short_ratio, *(s.long_short_ratio for s in sources)
-        ),
+        next_funding_time=next_funding,
+        long_liquidations_1h=long_liq,
+        short_liquidations_1h=short_liq,
+        long_short_ratio=long_short_ratio,
         klines_1h=klines,
         sources=source_names,
         fetched_at=time.time(),
