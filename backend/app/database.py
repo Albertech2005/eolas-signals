@@ -1,0 +1,69 @@
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
+from app.config import settings
+import redis.asyncio as redis
+import structlog
+
+logger = structlog.get_logger()
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    pool_size=settings.DATABASE_POOL_SIZE,
+    max_overflow=5,
+    echo=settings.DEBUG,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+# Redis client
+redis_client: redis.Redis = None
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
+
+
+async def init_db():
+    """Create all tables."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database initialized")
+
+
+async def init_redis():
+    """Initialize Redis connection pool."""
+    global redis_client
+    redis_client = redis.from_url(
+        settings.REDIS_URL,
+        encoding="utf-8",
+        decode_responses=True,
+    )
+    await redis_client.ping()
+    logger.info("Redis connected")
+
+
+async def get_redis() -> redis.Redis:
+    return redis_client
+
+
+async def close_connections():
+    """Cleanup on shutdown."""
+    await engine.dispose()
+    if redis_client:
+        await redis_client.aclose()
