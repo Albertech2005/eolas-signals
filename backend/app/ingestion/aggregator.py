@@ -12,6 +12,7 @@ logger = structlog.get_logger(__name__)
 # In-memory cache of latest aggregated data
 _market_cache: Dict[str, AggregatedMarketData] = {}
 _last_fetch_time: float = 0
+_last_known_prices: Dict[str, float] = {}  # never let prices drop to 0
 
 
 def _avg(*vals) -> Optional[float]:
@@ -137,7 +138,15 @@ async def fetch_and_aggregate() -> Dict[str, AggregatedMarketData]:
                     fetched_at=time.time(),
                 )
 
-    global _market_cache, _last_fetch_time
+    # Never let prices drop to 0 — restore last known good price if fallback also failed
+    global _market_cache, _last_fetch_time, _last_known_prices
+    for sym, data in result.items():
+        if data.price > 0:
+            _last_known_prices[sym] = data.price  # save good price
+        elif sym in _last_known_prices:
+            data.price = _last_known_prices[sym]  # restore last known good price
+            logger.warning("price_restored_from_cache", symbol=sym, price=data.price)
+
     _market_cache = result
     _last_fetch_time = time.time()
 

@@ -62,7 +62,7 @@ class Settings(BaseSettings):
 
     # Refresh intervals
     SIGNAL_EVAL_INTERVAL_SECONDS: int = 60   # how often to evaluate signals
-    DATA_REFRESH_INTERVAL_SECONDS: int = 10  # how often to refresh market data
+    DATA_REFRESH_INTERVAL_SECONDS: int = 30  # how often to refresh market data
 
     class Config:
         env_file = ".env"
