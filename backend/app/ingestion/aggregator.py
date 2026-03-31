@@ -4,7 +4,7 @@ import time
 from typing import Dict, Optional
 import structlog
 from app.ingestion.base import RawMarketData, AggregatedMarketData
-from app.ingestion import binance, bybit, okx, coinglass
+from app.ingestion import binance, bybit, okx, coinglass, coingecko
 from app.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -112,6 +112,30 @@ async def fetch_and_aggregate() -> Dict[str, AggregatedMarketData]:
                 result[sym] = agg
             except Exception as e:
                 logger.error("aggregation_error", symbol=sym, error=str(e))
+
+    # CoinGecko fallback — patch in real prices if exchange data returned 0
+    zero_price_syms = [s for s, d in result.items() if d.price == 0.0]
+    missing_syms = [s for s in symbols if s not in result]
+    needs_cg = zero_price_syms + missing_syms
+
+    if needs_cg:
+        logger.warning("price_fallback_triggered", symbols=needs_cg)
+        cg_prices = await coingecko.fetch_prices(needs_cg)
+        for sym, price_data in cg_prices.items():
+            if sym in result:
+                result[sym].price = price_data["price"]
+                if result[sym].price_change_24h is None:
+                    result[sym].price_change_24h = price_data["price_change_24h"]
+            else:
+                # Create a minimal market entry from CoinGecko data only
+                from app.ingestion.base import AggregatedMarketData
+                result[sym] = AggregatedMarketData(
+                    symbol=sym,
+                    price=price_data["price"],
+                    price_change_24h=price_data["price_change_24h"],
+                    sources=["coingecko"],
+                    fetched_at=time.time(),
+                )
 
     global _market_cache, _last_fetch_time
     _market_cache = result
