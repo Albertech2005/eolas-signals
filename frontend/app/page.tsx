@@ -87,15 +87,23 @@ export default function Dashboard() {
             {[1, 2, 3].map(i => <SignalSkeleton key={i} />)}
           </div>
         ) : actionableSignals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center border border-surface-border rounded-xl bg-surface-card">
-            <div className="w-12 h-12 rounded-xl bg-surface-elevated border border-surface-border flex items-center justify-center mb-3">
-              <Activity className="w-6 h-6 text-gray-600" />
+          <div className="flex flex-col items-center justify-center py-12 text-center border border-surface-border rounded-xl bg-surface-card">
+            <div className="w-14 h-14 rounded-xl bg-surface-elevated border border-surface-border flex items-center justify-center mb-4">
+              <Activity className="w-7 h-7 text-brand/60 animate-pulse" />
             </div>
-            <p className="text-white font-semibold mb-1">No high-confidence signals right now</p>
-            <p className="text-gray-500 text-sm max-w-sm">
-              The engine is monitoring {signals.length} markets. A signal requires ≥40 confidence with aligned indicators.
-              Most setups will output NO TRADE — that's by design.
+            <p className="text-white font-bold text-lg mb-1">Engine is scanning markets</p>
+            <p className="text-gray-500 text-sm max-w-sm mb-4">
+              No high-confidence setups right now. The engine requires ≥40 confidence with at least 2 aligned indicators — it only fires on quality setups, not noise.
             </p>
+            <div className="flex items-center gap-3">
+              <a href="/signals" className="px-4 py-2 text-xs font-semibold text-brand border border-brand/30 rounded-lg hover:bg-brand/10 transition-colors">
+                View Signal History →
+              </a>
+              <a href={process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL ?? 'https://t.me/eolastest'} target="_blank" rel="noopener noreferrer"
+                className="px-4 py-2 text-xs font-semibold text-gray-300 border border-surface-border rounded-lg hover:border-gray-500 transition-colors">
+                Get Telegram Alerts
+              </a>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

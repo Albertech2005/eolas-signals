@@ -14,8 +14,6 @@ export default function SignalsPage() {
 
   const filtered = signals.filter(s => {
     if (s.direction === 'NO_TRADE') return false
-    if (s.status === 'EXPIRED') return false
-    if (s.expires_at && new Date(s.expires_at) < new Date()) return false
     if (symbol !== 'ALL' && s.symbol !== symbol) return false
     if (dir !== 'ALL' && s.direction !== dir) return false
     return true
@@ -25,7 +23,7 @@ export default function SignalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">Signal History</h1>
-        <p className="text-gray-400 text-sm">All high-confidence signals with outcomes. Only trades above 40 confidence appear here.</p>
+        <p className="text-gray-400 text-sm">All high-confidence signals with outcomes. Active signals are live — Timed Out means the market didn't move enough within the window.</p>
       </div>
 
       {/* Filters */}

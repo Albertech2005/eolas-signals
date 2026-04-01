@@ -103,7 +103,7 @@ async def _persist_signal(signal: SignalOutput) -> Optional[Signal]:
     """Save a new signal to the database."""
     from datetime import datetime, timezone, timedelta
     async with AsyncSessionLocal() as db:
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=2)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=8)
         db_signal = Signal(
             symbol=signal.symbol,
             direction=SignalDirection(signal.direction),
