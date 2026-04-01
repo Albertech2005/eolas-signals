@@ -26,7 +26,7 @@ class ModuleResult:
 MAX_SCORE = 25.0
 
 # Minimum liquidation size to be meaningful (USDT)
-MIN_LIQ_USD = 500_000  # $500k min
+MIN_LIQ_USD = 100_000  # $100k min
 
 
 def evaluate(data: AggregatedMarketData) -> ModuleResult:

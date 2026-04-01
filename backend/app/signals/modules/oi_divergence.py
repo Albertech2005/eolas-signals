@@ -37,7 +37,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
 
     # --- LONG SIGNAL ---
     # OI rising significantly while price is stalling or dipping = accumulation
-    if oi_pct >= 0.3 and price_pct <= 1.0:
+    if oi_pct >= 0.1 and price_pct <= 1.0:
         divergence_strength = oi_pct - price_pct
         score = min(MAX_SCORE, divergence_strength * 4.0)
         strong = score >= 15
