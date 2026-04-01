@@ -103,7 +103,7 @@ async def _persist_signal(signal: SignalOutput) -> Optional[Signal]:
     """Save a new signal to the database."""
     from datetime import datetime, timezone, timedelta
     async with AsyncSessionLocal() as db:
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=8)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
         db_signal = Signal(
             symbol=signal.symbol,
             direction=SignalDirection(signal.direction),
@@ -216,15 +216,29 @@ async def _update_performance_cache():
                 select(Signal).where(
                     Signal.symbol == symbol,
                     Signal.status != SignalStatus.ACTIVE,
+                    Signal.status != SignalStatus.EXPIRED,   # exclude inconclusive
                     Signal.direction != SignalDirection.NO_TRADE,
                 )
             )
             sigs = result.scalars().all()
+
+            # Also fetch expired count separately (for display only)
+            expired_result = await db.execute(
+                select(Signal).where(
+                    Signal.symbol == symbol,
+                    Signal.status == SignalStatus.EXPIRED,
+                    Signal.direction != SignalDirection.NO_TRADE,
+                )
+            )
+            expired_count = len(expired_result.scalars().all())
+
             if not sigs:
                 continue
 
+            # Only count signals that actually resolved (TP1, TP2, or SL)
             total = len(sigs)
-            winners = [s for s in sigs if s.is_winner]
+            winners = [s for s in sigs if s.is_winner is True]
+            losers  = [s for s in sigs if s.is_winner is False]
             pnl_values = [s.pnl_pct for s in sigs if s.pnl_pct is not None]
 
             perf = await db.get(SignalPerformanceCache, symbol)
@@ -234,7 +248,7 @@ async def _update_performance_cache():
 
             perf.total_signals = total
             perf.winning_signals = len(winners)
-            perf.losing_signals = total - len(winners)
+            perf.losing_signals = len(losers)
             perf.win_rate = (len(winners) / total * 100) if total > 0 else 0
             perf.avg_confidence = sum(s.confidence for s in sigs) / total if total else 0
             perf.avg_pnl_pct = sum(pnl_values) / len(pnl_values) if pnl_values else 0
