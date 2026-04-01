@@ -14,6 +14,7 @@ from app.database import init_db, init_redis, close_connections, get_redis, redi
 from app.api.routes import signals, markets, analytics
 from app.tasks import scheduler
 from app.ingestion import aggregator
+from app.ingestion import liquidation_tracker
 
 logger = structlog.get_logger(__name__)
 
@@ -33,6 +34,10 @@ async def lifespan(app: FastAPI):
     # Wire Redis into scheduler
     from app.database import redis_client
     scheduler.set_redis(redis_client)
+
+    # Start real-time liquidation tracker (Binance public WebSocket, no key needed)
+    asyncio.create_task(liquidation_tracker.run())
+    logger.info("liquidation_tracker_task_started")
 
     # Initial data fetch (don't wait — let it run in background)
     asyncio.create_task(initial_fetch())

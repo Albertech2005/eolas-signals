@@ -4,7 +4,8 @@ import time
 from typing import Dict, Optional
 import structlog
 from app.ingestion.base import RawMarketData, AggregatedMarketData
-from app.ingestion import binance, bybit, okx, coinglass, coingecko
+from app.ingestion import binance, bybit, okx, coingecko
+from app.ingestion import liquidation_tracker
 from app.config import settings
 
 logger = structlog.get_logger(__name__)
@@ -37,8 +38,9 @@ def aggregate(sources: list[RawMarketData]) -> AggregatedMarketData:
     source_names = [s.source for s in sources]
 
     binance_src = next((s for s in sources if s.source == "binance"), None)
-    bybit_src = next((s for s in sources if s.source == "bybit"), None)
-    cg_src = next((s for s in sources if s.source == "coingecko"), None)
+    bybit_src   = next((s for s in sources if s.source == "bybit"), None)
+    okx_src     = next((s for s in sources if s.source == "okx"), None)
+    cg_src      = next((s for s in sources if s.source == "coingecko"), None)
 
     # Price: prefer Binance, then Bybit, then CoinGecko
     price = _best(
@@ -52,6 +54,7 @@ def aggregate(sources: list[RawMarketData]) -> AggregatedMarketData:
     oi = _best(
         bybit_src.open_interest if bybit_src else None,
         binance_src.open_interest if binance_src else None,
+        okx_src.open_interest if okx_src else None,
     )
     oi_change_1h = _best(
         bybit_src.oi_change_1h if bybit_src else None,
@@ -98,18 +101,27 @@ def aggregate(sources: list[RawMarketData]) -> AggregatedMarketData:
         cg_src.price_change_24h if cg_src else None,
     )
 
-    long_short_ratio = _best(
+    # Long/short ratio — average Binance + Bybit for best accuracy
+    ls_values = [
         bybit_src.long_short_ratio if bybit_src else None,
         binance_src.long_short_ratio if binance_src else None,
-    )
-    long_liq = _best(
-        bybit_src.long_liquidations_1h if bybit_src else None,
-        binance_src.long_liquidations_1h if binance_src else None,
-    )
-    short_liq = _best(
-        bybit_src.short_liquidations_1h if bybit_src else None,
-        binance_src.short_liquidations_1h if binance_src else None,
-    )
+    ]
+    long_short_ratio = _avg(*ls_values) or _best(*ls_values)
+
+    # Liquidations — prefer real WebSocket tracker, fall back to estimates
+    tracker_long, tracker_short = liquidation_tracker.get_liquidations_1h(symbol)
+    if tracker_long > 0 or tracker_short > 0:
+        long_liq  = tracker_long
+        short_liq = tracker_short
+    else:
+        long_liq = _best(
+            bybit_src.long_liquidations_1h if bybit_src else None,
+            binance_src.long_liquidations_1h if binance_src else None,
+        )
+        short_liq = _best(
+            bybit_src.short_liquidations_1h if bybit_src else None,
+            binance_src.short_liquidations_1h if binance_src else None,
+        )
     next_funding = _best(
         bybit_src.next_funding_time if bybit_src else None,
         binance_src.next_funding_time if binance_src else None,
@@ -141,18 +153,23 @@ async def fetch_and_aggregate() -> Dict[str, AggregatedMarketData]:
     """Fetch from all sources and return per-symbol aggregated data."""
     symbols = settings.SUPPORTED_SYMBOLS
 
-    # Fetch from Binance (primary) and Bybit (secondary) in parallel
+    # Fetch from Binance, Bybit, and OKX in parallel
     binance_task = asyncio.create_task(binance.fetch_all(symbols))
-    bybit_task = asyncio.create_task(bybit.fetch_all(symbols))
+    bybit_task   = asyncio.create_task(bybit.fetch_all(symbols))
+    okx_task     = asyncio.create_task(okx.fetch_all(symbols))
 
-    binance_results, bybit_results = await asyncio.gather(
-        binance_task, bybit_task, return_exceptions=True
+    binance_results, bybit_results, okx_results = await asyncio.gather(
+        binance_task, bybit_task, okx_task, return_exceptions=True
     )
+
+    if isinstance(okx_results, Exception):
+        logger.warning("okx_fetch_failed", error=str(okx_results))
+        okx_results = []
 
     # Group by symbol
     symbol_data: Dict[str, list[RawMarketData]] = {sym: [] for sym in symbols}
 
-    for source_results in [binance_results, bybit_results]:
+    for source_results in [binance_results, bybit_results, okx_results]:
         if isinstance(source_results, list):
             for item in source_results:
                 if isinstance(item, RawMarketData) and item.symbol in symbol_data:

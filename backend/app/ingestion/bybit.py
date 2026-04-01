@@ -81,6 +81,27 @@ async def fetch_symbol(session: aiohttp.ClientSession, symbol: str) -> Optional[
             sell_ratio = float(ls_list[0].get("sellRatio", 0.5))
             data.long_short_ratio = buy_ratio / sell_ratio if sell_ratio > 0 else 1.0
 
+        # OI history — compute oi_change_1h and oi_change_4h
+        try:
+            oi_hist_resp = await _get(session, "/v5/market/open-interest", {
+                "category": "linear", "symbol": fut_symbol,
+                "intervalTime": "1h", "limit": 5
+            })
+            oi_hist = oi_hist_resp.get("result", {}).get("list", [])
+            # Bybit returns newest first
+            if oi_hist and len(oi_hist) >= 2 and data.price:
+                oi_now  = float(oi_hist[0].get("openInterest", 0)) * data.price
+                oi_1h   = float(oi_hist[1].get("openInterest", 0)) * data.price
+                oi_4h   = float(oi_hist[-1].get("openInterest", 0)) * data.price if len(oi_hist) >= 5 else None
+
+                if oi_1h > 0:
+                    data.oi_change_1h = ((oi_now - oi_1h) / oi_1h) * 100
+                    data.open_interest = oi_now  # more accurate than ticker value
+                if oi_4h and oi_4h > 0:
+                    data.oi_change_4h = ((oi_now - oi_4h) / oi_4h) * 100
+        except Exception as e:
+            logger.debug("bybit_oi_hist_error", symbol=symbol, error=str(e))
+
         return data
 
     except Exception as e:

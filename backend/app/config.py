@@ -49,9 +49,6 @@ class Settings(BaseSettings):
     OKX_WS_URL: str = "wss://ws.okx.com:8443/ws/v5/public"
     OKX_REST_URL: str = "https://www.okx.com"
 
-    COINGLASS_REST_URL: str = "https://open-api.coinglass.com"
-    COINGLASS_API_KEY: str = ""  # optional for higher rate limits
-
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHANNEL_ID: str = ""  # e.g. @your_channel or -1001234567890
