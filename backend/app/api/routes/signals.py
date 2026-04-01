@@ -146,7 +146,7 @@ async def reset_all_data(secret: str = Query(...), db: AsyncSession = Depends(ge
     from app.models.market import MarketData, SignalPerformanceCache
     await db.execute(text("TRUNCATE TABLE signals RESTART IDENTITY CASCADE"))
     await db.execute(text("TRUNCATE TABLE market_data RESTART IDENTITY CASCADE"))
-    await db.execute(text("TRUNCATE TABLE signal_performance_cache RESTART IDENTITY CASCADE"))
+    await db.execute(text("TRUNCATE TABLE signal_performance RESTART IDENTITY CASCADE"))
     await db.commit()
 
     if redis:
