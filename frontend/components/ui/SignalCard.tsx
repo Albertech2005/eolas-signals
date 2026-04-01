@@ -185,9 +185,8 @@ function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string }> = {
     HIT_TP1: { label: 'TP1 ✓', color: 'bg-long/10 text-long border-long/30' },
     HIT_TP2: { label: 'TP2 ✓', color: 'bg-long/20 text-long border-long/40' },
-    HIT_SL: { label: 'SL ✗', color: 'bg-short/10 text-short border-short/30' },
-    EXPIRED: { label: 'Timed Out', color: 'bg-gray-800 text-gray-500 border-gray-700' },
     HIT_SL: { label: 'Stopped Out', color: 'bg-short/10 text-short border-short/30' },
+    EXPIRED: { label: 'Timed Out', color: 'bg-gray-800 text-gray-500 border-gray-700' },
   }
   const c = config[status] ?? { label: status, color: 'bg-gray-800 text-gray-400 border-gray-700' }
   return (
