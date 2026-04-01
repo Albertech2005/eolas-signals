@@ -135,6 +135,26 @@ async def live_evaluation(redis=Depends(get_redis)):
     }
 
 
+@router.delete("/admin/reset")
+async def reset_all_data(secret: str = Query(...), db: AsyncSession = Depends(get_db), redis=Depends(get_redis)):
+    """Reset all signals and analytics. Requires secret key."""
+    from app.config import settings
+    if secret != "eolas-reset-2026":
+        raise HTTPException(403, "Invalid secret")
+
+    from sqlalchemy import text
+    from app.models.market import MarketData, SignalPerformanceCache
+    await db.execute(text("TRUNCATE TABLE signals RESTART IDENTITY CASCADE"))
+    await db.execute(text("TRUNCATE TABLE market_data RESTART IDENTITY CASCADE"))
+    await db.execute(text("TRUNCATE TABLE signal_performance_cache RESTART IDENTITY CASCADE"))
+    await db.commit()
+
+    if redis:
+        await redis.flushdb()
+
+    return {"status": "reset complete", "message": "All signals and analytics cleared"}
+
+
 @router.get("/{signal_id}")
 async def get_signal(signal_id: str, db: AsyncSession = Depends(get_db)):
     """Get a specific signal by ID."""
