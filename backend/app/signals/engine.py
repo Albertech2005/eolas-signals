@@ -162,6 +162,7 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
             symbol, price,
             f"Score {confidence}/100 below threshold ({settings.MIN_CONFIDENCE_SCORE})",
             scores=scores,
+            confidence=confidence,
         )
 
     # --- Generate signal ---
@@ -213,11 +214,11 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
     return output
 
 
-def _no_trade(symbol: str, price: float, reason: str, scores: dict = None) -> SignalOutput:
+def _no_trade(symbol: str, price: float, reason: str, scores: dict = None, confidence: int = 0) -> SignalOutput:
     return SignalOutput(
         symbol=symbol,
         direction="NO_TRADE",
-        confidence=0,
+        confidence=confidence,
         entry_price=price,
         stop_loss=0,
         take_profit_1=0,

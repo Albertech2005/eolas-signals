@@ -121,12 +121,22 @@ export default function Dashboard() {
             Monitoring — Waiting for Setup
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
-            {noTradeSignals.map(s => (
-              <div key={s.symbol} className="bg-surface-card border border-surface-border rounded-lg p-2.5 text-center">
-                <div className="text-xs font-bold text-gray-400">{s.symbol}</div>
-                <div className="text-[10px] text-gray-600 mt-0.5">Score {s.confidence}</div>
-              </div>
-            ))}
+            {noTradeSignals.map(s => {
+              const score = s.confidence ?? 0
+              const pct = Math.min(100, (score / 55) * 100)
+              const color = score >= 45 ? 'text-yellow-400' : score >= 30 ? 'text-gray-400' : 'text-gray-600'
+              return (
+                <div key={s.symbol} className="bg-surface-card border border-surface-border rounded-lg p-3 text-center">
+                  <div className="text-xs font-bold text-white mb-1.5">{s.symbol}</div>
+                  <div className="w-full h-1 bg-surface-elevated rounded-full mb-1.5">
+                    <div className="h-1 bg-brand/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className={`text-[10px] font-semibold ${color}`}>
+                    {score > 0 ? `${score}/55` : 'Scanning…'}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
