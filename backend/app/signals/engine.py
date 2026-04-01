@@ -111,6 +111,8 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
     }
 
     total_score = sum(scores.values())
+    # Compute confidence early so all exit paths can report it
+    confidence = min(100, int(total_score))
 
     # --- Volatility gate ---
     if vol_result.score < 3.0:
@@ -118,6 +120,7 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
             symbol, price,
             f"Volatility filter: {vol_result.reason}",
             scores=scores,
+            confidence=confidence,
         )
 
     # --- Collect directional votes ---
@@ -153,10 +156,10 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
             symbol, price,
             "Insufficient directional consensus — conflicting signals",
             scores=scores,
+            confidence=confidence,
         )
 
     # --- Confidence threshold ---
-    confidence = min(100, int(total_score))
     if confidence < settings.MIN_CONFIDENCE_SCORE:
         return _no_trade(
             symbol, price,
