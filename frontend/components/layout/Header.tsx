@@ -37,7 +37,7 @@ export function Header() {
             <span className="font-bold text-white text-sm">EOLAS</span>
             <span className="text-brand text-sm font-bold"> Signals</span>
           </div>
-        </button>
+        </a>
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
