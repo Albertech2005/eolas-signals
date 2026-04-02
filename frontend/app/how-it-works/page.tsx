@@ -1,3 +1,4 @@
+'use client'
 import { cn } from '@/lib/utils'
 import { Activity, TrendingUp, Zap, Shield, BarChart2, CheckCircle } from 'lucide-react'
 
