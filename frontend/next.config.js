@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 'standalone' is for Docker/Node deployments only — breaks Vercel client-side routing
-  ...(process.env.BUILD_STANDALONE === 'true' && { output: 'standalone' }),
   reactStrictMode: true,
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
