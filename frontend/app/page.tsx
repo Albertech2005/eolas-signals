@@ -40,28 +40,30 @@ export default function Dashboard() {
   const noTradeSignals    = signals.filter(s => !s.is_actionable)
 
   // ── Rate-of-change tracking ───────────────────────────────────────────────
-  // Stores a snapshot of scores from ~1 refresh cycle ago
-  const snapshotRef = useRef<Record<string, number>>({})
+  // Persists scores in sessionStorage so arrows show immediately on each visit
   const [scoreTrends, setScoreTrends] = useState<Record<string, number>>({})
 
   useEffect(() => {
     if (!noTradeSignals.length) return
 
-    // Compute deltas vs snapshot
+    const SESSION_KEY = 'eolas_score_snapshot'
+    let prev: Record<string, number> = {}
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY)
+      if (raw) prev = JSON.parse(raw)
+    } catch {}
+
+    // Compute deltas
     const trends: Record<string, number> = {}
     noTradeSignals.forEach(s => {
-      const prev = snapshotRef.current[s.symbol]
-      if (prev !== undefined) trends[s.symbol] = s.confidence - prev
+      if (prev[s.symbol] !== undefined) trends[s.symbol] = s.confidence - prev[s.symbol]
     })
     setScoreTrends(trends)
 
-    // Update snapshot 14s from now (just before next 15s SWR refresh)
-    const t = setTimeout(() => {
-      const snap: Record<string, number> = {}
-      noTradeSignals.forEach(s => { snap[s.symbol] = s.confidence })
-      snapshotRef.current = snap
-    }, 14_000)
-    return () => clearTimeout(t)
+    // Save current scores as the new snapshot
+    const snap: Record<string, number> = {}
+    noTradeSignals.forEach(s => { snap[s.symbol] = s.confidence })
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(snap)) } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signals])
 

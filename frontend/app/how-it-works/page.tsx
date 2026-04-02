@@ -1,6 +1,6 @@
 'use client'
 import { cn } from '@/lib/utils'
-import { Activity, TrendingUp, Zap, Shield, BarChart2, CheckCircle } from 'lucide-react'
+import { Activity, TrendingUp, Zap, Shield, BarChart2, CircleCheck } from 'lucide-react'
 
 const MODULES = [
   {
@@ -115,7 +115,7 @@ export default function HowItWorksPage() {
         <ul className="space-y-3">
           {HOW_IT_FIRES.map((rule, i) => (
             <li key={i} className="flex items-start gap-3 text-sm text-gray-300">
-              <CheckCircle className="w-4 h-4 text-long shrink-0 mt-0.5" />
+              <CircleCheck className="w-4 h-4 text-long shrink-0 mt-0.5" />
               {rule}
             </li>
           ))}
