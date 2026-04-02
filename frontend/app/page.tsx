@@ -79,7 +79,7 @@ export default function Dashboard() {
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-500">Score threshold ≥40 · Min 2 strong signals</span>
+          <span className="text-xs text-gray-500">Score threshold ≥75 · Min 2 strong signals</span>
         </div>
 
         {isLoading ? (
@@ -123,8 +123,8 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
             {noTradeSignals.map(s => {
               const score = s.confidence ?? 0
-              const pct = Math.min(100, (score / 55) * 100)
-              const color = score >= 45 ? 'text-yellow-400' : score >= 30 ? 'text-gray-400' : 'text-gray-600'
+              const pct = Math.min(100, (score / 75) * 100)
+              const color = score >= 65 ? 'text-yellow-400' : score >= 45 ? 'text-gray-400' : 'text-gray-600'
               return (
                 <div key={s.symbol} className="bg-surface-card border border-surface-border rounded-lg p-3 text-center">
                   <div className="text-xs font-bold text-white mb-1.5">{s.symbol}</div>
@@ -132,7 +132,7 @@ export default function Dashboard() {
                     <div className="h-1 bg-brand/60 rounded-full transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   <div className={`text-[10px] font-semibold ${color}`}>
-                    {score > 0 ? `${score}/55` : 'Scanning…'}
+                    {score > 0 ? `${score}/75` : 'Scanning…'}
                   </div>
                 </div>
               )
