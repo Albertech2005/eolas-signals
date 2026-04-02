@@ -15,13 +15,22 @@ export function Header() {
   const path   = usePathname()
   const router = useRouter()
 
-  const go = (href: string) => router.push(href)
+  const go = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault()
+    router.push(href)
+    // Fallback: if router.push fails silently, force full navigate after 300ms
+    setTimeout(() => {
+      if (window.location.pathname !== href) {
+        window.location.href = href
+      }
+    }, 300)
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-surface-border bg-surface/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
-        <button onClick={() => go('/')} className="flex items-center gap-2 group">
+        <a href="/" onClick={(e) => go(e, '/')} className="flex items-center gap-2 group">
           <Image src="/eolas-logo.jpg" alt="EOLAS" width={32} height={32} className="rounded-lg" />
           <div className="leading-none">
             <span className="font-bold text-white text-sm">EOLAS</span>
@@ -32,9 +41,10 @@ export function Header() {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {NAV.map(({ href, label, icon: Icon }) => (
-            <button
+            <a
               key={href}
-              onClick={() => go(href)}
+              href={href}
+              onClick={(e) => go(e, href)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors cursor-pointer',
                 path === href
@@ -44,7 +54,7 @@ export function Header() {
             >
               <Icon className="w-3.5 h-3.5" />
               {label}
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -73,9 +83,10 @@ export function Header() {
       {/* Mobile nav */}
       <div className="md:hidden flex border-t border-surface-border">
         {NAV.map(({ href, label, icon: Icon }) => (
-          <button
+          <a
             key={href}
-            onClick={() => go(href)}
+            href={href}
+            onClick={(e) => go(e, href)}
             className={cn(
               'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors cursor-pointer',
               path === href ? 'text-brand' : 'text-gray-500',
@@ -83,7 +94,7 @@ export function Header() {
           >
             <Icon className="w-4 h-4" />
             {label}
-          </button>
+          </a>
         ))}
       </div>
     </header>
