@@ -142,15 +142,15 @@ export function SignalCard({ signal, compact = false, animate = true }: SignalCa
         </div>
       )}
 
-      {/* PnL badge for resolved signals */}
-      {full && signal.pnl_pct != null && (
+      {/* PnL badge for resolved signals (only show when outcome is definitively known) */}
+      {full && signal.pnl_pct != null && signal.is_winner != null && (
         <div className={cn(
           'mt-3 pt-3 border-t flex items-center justify-between text-xs',
           'border-surface-border',
         )}>
           <span className="text-gray-500">Result</span>
-          <span className={cn('font-bold font-mono', signal.is_winner ? 'text-long' : 'text-short')}>
-            {signal.is_winner ? '+' : ''}{signal.pnl_pct?.toFixed(2)}%
+          <span className={cn('font-bold font-mono', signal.is_winner === true ? 'text-long' : 'text-short')}>
+            {signal.is_winner === true ? '+' : ''}{signal.pnl_pct?.toFixed(2)}%
           </span>
         </div>
       )}

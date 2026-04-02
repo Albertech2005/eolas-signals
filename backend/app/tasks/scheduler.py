@@ -139,6 +139,9 @@ async def _cache_active_signals(signals: list[Signal]):
     await _redis.setex("signals:active", 120, orjson.dumps(data))
 
 
+_MIN_OUTCOME_CHECK_AGE_SECONDS = 10 * 60  # 10-minute grace period before outcome checks
+
+
 async def _check_signal_outcomes(market_data: Dict[str, AggregatedMarketData]):
     """Check if any active signals have hit TP or SL."""
     async with AsyncSessionLocal() as db:
@@ -156,6 +159,16 @@ async def _check_signal_outcomes(market_data: Dict[str, AggregatedMarketData]):
                 sig.status = SignalStatus.EXPIRED
                 updated.append(sig)
                 continue
+
+            # Grace period: ignore very new signals to avoid premature SL hits from
+            # price wicks / transient volatility right after signal creation.
+            if sig.created_at:
+                created_at = sig.created_at
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                age_seconds = (now - created_at).total_seconds()
+                if age_seconds < _MIN_OUTCOME_CHECK_AGE_SECONDS:
+                    continue
 
             current_data = market_data.get(sig.symbol)
             if not current_data:
