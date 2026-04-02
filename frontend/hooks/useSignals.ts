@@ -83,3 +83,12 @@ export function usePerformance() {
   )
   return { performance: data, error, isLoading }
 }
+
+export function useStreaks() {
+  const { data, error, isLoading } = useSWR(
+    'analytics/streaks',
+    () => api.analytics.streaks(),
+    { refreshInterval: 300_000 }
+  )
+  return { streaks: (data?.streaks ?? []) as import('../lib/types').SymbolStreak[], error, isLoading }
+}

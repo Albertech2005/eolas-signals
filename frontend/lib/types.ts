@@ -68,6 +68,12 @@ export interface PerformanceStats {
   }[]
 }
 
+export interface SymbolStreak {
+  symbol: string
+  streak_type: 'win' | 'loss'
+  count: number
+}
+
 export interface LiveSignal {
   symbol: string
   direction: Direction

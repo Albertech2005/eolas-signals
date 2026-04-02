@@ -3,12 +3,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Activity, BarChart2, Zap, Send } from 'lucide-react'
+import { Activity, BarChart2, Zap, Send, BookOpen } from 'lucide-react'
 
 const NAV = [
-  { href: '/', label: 'Dashboard', icon: Activity },
-  { href: '/signals', label: 'Signals', icon: Zap },
-  { href: '/analytics', label: 'Analytics', icon: BarChart2 },
+  { href: '/',             label: 'Dashboard',    icon: Activity  },
+  { href: '/signals',      label: 'Signals',      icon: Zap       },
+  { href: '/analytics',    label: 'Analytics',    icon: BarChart2 },
+  { href: '/how-it-works', label: 'How It Works', icon: BookOpen  },
 ]
 
 export function Header() {

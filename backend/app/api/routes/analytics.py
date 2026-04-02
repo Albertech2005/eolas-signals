@@ -78,6 +78,40 @@ async def signal_history(
     }
 
 
+@router.get("/streaks")
+async def win_streaks(db: AsyncSession = Depends(get_db)):
+    """Current consecutive win/loss streak per symbol."""
+    result = await db.execute(
+        select(Signal)
+        .where(
+            Signal.direction != SignalDirection.NO_TRADE,
+            Signal.is_winner != None,  # noqa: E711
+        )
+        .order_by(Signal.symbol, desc(Signal.created_at))
+    )
+    all_sigs = result.scalars().all()
+
+    # Group by symbol (already ordered by created_at desc per symbol)
+    by_symbol: dict = {}
+    for s in all_sigs:
+        by_symbol.setdefault(s.symbol, []).append(s)
+
+    streaks = []
+    for symbol, sigs in by_symbol.items():
+        if not sigs:
+            continue
+        streak_type = "win" if sigs[0].is_winner else "loss"
+        count = 0
+        for s in sigs:
+            if (s.is_winner and streak_type == "win") or (not s.is_winner and streak_type == "loss"):
+                count += 1
+            else:
+                break
+        streaks.append({"symbol": symbol, "streak_type": streak_type, "count": count})
+
+    return {"streaks": sorted(streaks, key=lambda x: x["count"], reverse=True)}
+
+
 @router.get("/leaderboard")
 async def leaderboard(db: AsyncSession = Depends(get_db)):
     """Symbol leaderboard by win rate."""

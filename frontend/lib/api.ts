@@ -34,6 +34,7 @@ export const api = {
     history: (days = 30, symbol?: string) =>
       apiFetch<{ signals: import('./types').Signal[] }>(`/analytics/history?days=${days}${symbol ? `&symbol=${symbol}` : ''}`),
     leaderboard: () => apiFetch<{ leaderboard: any[] }>('/analytics/leaderboard'),
+    streaks: () => apiFetch<{ streaks: import('./types').SymbolStreak[] }>('/analytics/streaks'),
     summary: () => apiFetch<{
       total_signals: number
       winning_signals: number

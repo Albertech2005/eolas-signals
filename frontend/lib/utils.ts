@@ -74,15 +74,22 @@ export function timeAgo(dateStr: string): string {
 }
 
 export function generateTweetText(signal: import('./types').Signal): string {
-  const dir = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT'
-  const entry = formatPrice(signal.entry_price, signal.symbol)
+  const dir    = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT'
+  const entry  = formatPrice(signal.entry_price, signal.symbol)
+  const tp1    = formatPrice(signal.take_profit_1, signal.symbol)
+  const tp2    = formatPrice(signal.take_profit_2, signal.symbol)
+  const sl     = formatPrice(signal.stop_loss, signal.symbol)
+  const conf   = signal.confidence
+  const confLabel = conf >= 90 ? '🔥 VERY HIGH' : conf >= 80 ? '💪 HIGH' : '✅ GOOD'
   return encodeURIComponent(
-    `⚡ ${signal.symbol} ${dir} Signal\n` +
-    `Confidence: ${signal.confidence}%\n` +
-    `Entry: ${entry}\n` +
-    `TP: ${formatPrice(signal.take_profit_2, signal.symbol)}\n` +
-    `SL: ${formatPrice(signal.stop_loss, signal.symbol)}\n\n` +
-    `Trade on EOLAS Perps: ${signal.eolas_url ?? 'https://perps.eolas.fun'}\n` +
-    `#EOLAS #Crypto #Trading`
+    `⚡ ${signal.symbol}/USDC ${dir} Signal\n\n` +
+    `Confidence: ${conf}/100 — ${confLabel}\n` +
+    `Entry zone: ~${entry}\n` +
+    `TP1: ${tp1} · TP2: ${tp2}\n` +
+    `SL:  ${sl}\n\n` +
+    `Powered by @EOLASProtocol signal engine.\n` +
+    `Trade it on EOLAS Perps 👇\n` +
+    `${signal.eolas_url ?? 'https://perps.eolas.fun'}\n\n` +
+    `#EOLAS #DeFi #CryptoSignals #${signal.symbol}`
   )
 }
