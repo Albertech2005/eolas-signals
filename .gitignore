@@ -30,3 +30,10 @@ Thumbs.db
 # Database / secrets
 *.db
 *.sqlite
+
+# Nested repos (not submodules — keep out of index)
+clawlett/
+clawlett-eolas/
+clawlett-perps/
+eolas-signals/
+solana-token-bot/
