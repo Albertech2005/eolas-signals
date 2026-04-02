@@ -7,8 +7,7 @@ import { cn, formatPct } from '@/lib/utils'
 import { Activity, TrendingUp, Award, Zap, Send, Copy, CheckCheck, ExternalLink, Star } from 'lucide-react'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
-import type { LiveSignal } from '@/lib/types'
+
 
 const WS_URL = (process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000') + '/ws'
 
