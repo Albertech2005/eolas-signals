@@ -3,6 +3,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { Activity, BarChart2, Zap, Send, BookOpen } from 'lucide-react'
+import type { MouseEvent } from 'react'
 
 const NAV = [
   { href: '/',             label: 'Dashboard', icon: Activity  },
@@ -15,7 +16,7 @@ export function Header() {
   const path   = usePathname()
   const router = useRouter()
 
-  const go = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  const go = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault()
     router.push(href)
     // Fallback: if router.push fails silently, force full navigate after 300ms
