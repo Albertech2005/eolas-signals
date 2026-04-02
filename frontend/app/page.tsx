@@ -20,7 +20,7 @@ function loadWatchlist(): Set<string> {
   } catch { return new Set() }
 }
 function saveWatchlist(s: Set<string>) {
-  try { localStorage.setItem('eolas_watchlist', JSON.stringify([...s])) } catch {}
+  try { localStorage.setItem('eolas_watchlist', JSON.stringify(Array.from(s))) } catch {}
 }
 
 export default function Dashboard() {
