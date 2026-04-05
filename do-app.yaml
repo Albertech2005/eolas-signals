@@ -1,0 +1,77 @@
+name: eolas-signals
+region: nyc
+
+services:
+  # ─── Frontend (Next.js) ───────────────────────────────────────────────────
+  - name: frontend
+    source_dir: frontend
+    dockerfile_path: frontend/Dockerfile
+    http_port: 3000
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 1
+    routes:
+      - path: /
+    envs:
+      - key: NEXT_PUBLIC_API_URL
+        value: ${backend.PUBLIC_URL}
+      - key: NEXT_PUBLIC_WS_URL
+        value: ${backend.PUBLIC_URL}
+        # DO injects PUBLIC_URL as https:// — we swap to wss:// at runtime via lib/api.ts
+      - key: NEXT_PUBLIC_EOLAS_URL
+        value: "https://perps.eolas.fun"
+      - key: NEXT_PUBLIC_TELEGRAM_CHANNEL
+        value: "https://t.me/eolastest"
+
+  # ─── Backend (FastAPI) ────────────────────────────────────────────────────
+  - name: backend
+    source_dir: backend
+    dockerfile_path: backend/Dockerfile
+    http_port: 8000
+    instance_size_slug: apps-s-1vcpu-1gb
+    instance_count: 1
+    routes:
+      - path: /api
+      - path: /ws
+    health_check:
+      http_path: /api/health
+    envs:
+      - key: DATABASE_URL
+        value: ${eolasdb.DATABASE_URL}
+        type: SECRET
+      - key: REDIS_URL
+        value: ${eolas-redis.REDIS_URL}
+        type: SECRET
+      - key: CORS_ORIGINS
+        value: '["${frontend.PUBLIC_URL}","https://perps.eolas.fun"]'
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      # Optional — add these in the DO dashboard if you have them
+      - key: TELEGRAM_BOT_TOKEN
+        value: ""
+        type: SECRET
+      - key: TELEGRAM_CHANNEL_ID
+        value: ""
+        type: SECRET
+      - key: BINANCE_API_KEY
+        value: ""
+        type: SECRET
+      - key: BINANCE_API_SECRET
+        value: ""
+        type: SECRET
+
+# ─── Managed PostgreSQL ────────────────────────────────────────────────────
+databases:
+  - name: eolasdb
+    engine: PG
+    version: "16"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
+
+  # ─── Managed Redis ────────────────────────────────────────────────────────
+  - name: eolas-redis
+    engine: REDIS
+    version: "7"
+    size: db-s-1vcpu-1gb
+    num_nodes: 1
