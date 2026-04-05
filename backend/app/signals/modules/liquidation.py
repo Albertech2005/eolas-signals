@@ -26,7 +26,39 @@ class ModuleResult:
 MAX_SCORE = 25.0
 
 # Minimum liquidation size to be meaningful (USDT)
-MIN_LIQ_USD = 100_000  # $100k min
+MIN_LIQ_USD = 25_000  # $25k min (lowered from $100k — alts have smaller liq events)
+
+
+def _ls_ratio_fallback(data: AggregatedMarketData) -> ModuleResult:
+    """
+    When liquidation data is sparse, fall back to long/short ratio sentiment.
+    Extreme LS ratios indicate crowded positioning that can unwind fast.
+    Max score from this path: 10 (partial contribution only).
+    """
+    ls = data.long_short_ratio
+    if ls is None:
+        return ModuleResult(0, MAX_SCORE, "NEUTRAL", "Liquidation & L/S ratio data unavailable", False)
+
+    if ls >= 1.6:
+        # Very crowded longs → long squeeze risk → SHORT bias
+        score = min(10.0, (ls - 1.4) * 15)
+        return ModuleResult(
+            score=round(score, 2), max_score=MAX_SCORE,
+            direction="SHORT",
+            reason=f"Crowded long positioning (L/S ratio {ls:.2f}) — squeeze risk",
+            strong=False,
+        )
+    if ls <= 0.65:
+        # Very crowded shorts → short squeeze risk → LONG bias
+        score = min(10.0, (0.75 - ls) * 25)
+        return ModuleResult(
+            score=round(score, 2), max_score=MAX_SCORE,
+            direction="LONG",
+            reason=f"Crowded short positioning (L/S ratio {ls:.2f}) — squeeze likely",
+            strong=False,
+        )
+
+    return ModuleResult(0, MAX_SCORE, "NEUTRAL", f"L/S ratio neutral ({ls:.2f}) — no positioning edge", False)
 
 
 def evaluate(data: AggregatedMarketData) -> ModuleResult:
@@ -34,28 +66,24 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     short_liq = data.short_liquidations_1h
 
     if long_liq is None or short_liq is None:
-        return ModuleResult(0, MAX_SCORE, "NEUTRAL", "Liquidation data unavailable", False)
+        return _ls_ratio_fallback(data)
 
     total_liq = long_liq + short_liq
 
-    # Not enough liquidation volume to matter
+    # Not enough liquidation volume — fall back to L/S ratio
     if total_liq < MIN_LIQ_USD:
-        return ModuleResult(
-            0, MAX_SCORE, "NEUTRAL",
-            f"Low liquidation volume (${total_liq/1e6:.1f}M) — no pressure detected",
-            False
-        )
+        return _ls_ratio_fallback(data)
 
     if total_liq == 0:
-        return ModuleResult(0, MAX_SCORE, "NEUTRAL", "No liquidations data", False)
+        return _ls_ratio_fallback(data)
 
     long_ratio = long_liq / total_liq
     short_ratio = short_liq / total_liq
 
     # --- SHORTS GETTING LIQUIDATED (short squeeze → LONG) ---
     # When shorts are wiped out, price tends to keep rising
-    if short_ratio >= 0.70:
-        intensity = (short_ratio - 0.60) / 0.40  # 0 to 1
+    if short_ratio >= 0.65:
+        intensity = (short_ratio - 0.55) / 0.45  # 0 to 1
         score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2)
         short_liq_m = short_liq / 1e6
         strong = score >= 15
@@ -69,8 +97,8 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
 
     # --- LONGS GETTING LIQUIDATED (long cascade → SHORT) ---
     # Longs getting wiped forces more selling → downward cascade
-    if long_ratio >= 0.70:
-        intensity = (long_ratio - 0.60) / 0.40
+    if long_ratio >= 0.65:
+        intensity = (long_ratio - 0.55) / 0.45
         score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2)
         long_liq_m = long_liq / 1e6
         strong = score >= 15
@@ -83,7 +111,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
         )
 
     # Moderate imbalance
-    if short_ratio >= 0.60:
+    if short_ratio >= 0.55:
         score = (short_ratio - 0.50) * MAX_SCORE * 2
         return ModuleResult(
             score=round(min(score, 12.0), 2),
@@ -93,7 +121,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
             strong=False,
         )
 
-    if long_ratio >= 0.60:
+    if long_ratio >= 0.55:
         score = (long_ratio - 0.50) * MAX_SCORE * 2
         return ModuleResult(
             score=round(min(score, 12.0), 2),

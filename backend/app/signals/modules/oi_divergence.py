@@ -36,64 +36,64 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     price_pct = price_change  # already in %
 
     # --- LONG SIGNAL ---
-    # OI rising significantly while price is stalling or dipping = accumulation
-    if oi_pct >= 0.1 and price_pct <= 1.0:
-        divergence_strength = oi_pct - price_pct
-        score = min(MAX_SCORE, divergence_strength * 4.0)
-        strong = score >= 15
+    # OI rising while price is stalling or dipping = accumulation
+    if oi_pct >= 0.05 and price_pct <= 1.0:
+        divergence_strength = oi_pct - price_pct + 0.5  # base boost so small divergence still scores
+        score = min(MAX_SCORE, divergence_strength * 6.0)
+        strong = score >= 14
         return ModuleResult(
-            score=round(score, 2),
+            score=round(max(score, 5.0), 2),
             max_score=MAX_SCORE,
             direction="LONG",
-            reason=f"OI up {oi_pct:.1f}% while price flat ({price_pct:.1f}%) — accumulation detected",
+            reason=f"OI up {oi_pct:.2f}% while price flat ({price_pct:.2f}%) — accumulation detected",
             strong=strong,
         )
 
-    # OI strongly rising with moderate price rise = trend confirmation (partial)
-    if oi_pct >= 2.0 and 0.5 < price_pct <= 2.5:
-        score = min(MAX_SCORE * 0.6, oi_pct * 2.5)
+    # OI rising with moderate price rise = trend confirmation (partial)
+    if oi_pct >= 1.0 and 0.3 < price_pct <= 2.5:
+        score = min(MAX_SCORE * 0.6, oi_pct * 3.5)
         return ModuleResult(
-            score=round(score, 2),
+            score=round(max(score, 5.0), 2),
             max_score=MAX_SCORE,
             direction="LONG",
-            reason=f"OI rising {oi_pct:.1f}% with price +{price_pct:.1f}% — trend confirmed",
+            reason=f"OI rising {oi_pct:.2f}% with price +{price_pct:.2f}% — trend confirmed",
             strong=False,
         )
 
     # --- SHORT SIGNAL ---
     # OI rising while price is pumping strongly = potential top / overleveraged longs
-    if oi_pct >= 2.0 and price_pct >= 2.5:
-        score = min(MAX_SCORE, (oi_pct + price_pct) * 2.0)
-        strong = score >= 15
+    if oi_pct >= 1.5 and price_pct >= 2.0:
+        score = min(MAX_SCORE, (oi_pct + price_pct) * 2.5)
+        strong = score >= 14
         return ModuleResult(
             score=round(score, 2),
             max_score=MAX_SCORE,
             direction="SHORT",
-            reason=f"OI +{oi_pct:.1f}% with price +{price_pct:.1f}% — overleveraged longs, reversal risk",
+            reason=f"OI +{oi_pct:.2f}% with price +{price_pct:.2f}% — overleveraged longs, reversal risk",
             strong=strong,
         )
 
     # OI falling while price rising = divergence (distribution / smart money exiting)
-    if oi_pct <= -1.0 and price_pct >= 1.0:
+    if oi_pct <= -0.5 and price_pct >= 0.5:
         divergence_strength = abs(oi_pct) + price_pct
-        score = min(MAX_SCORE, divergence_strength * 3.0)
-        strong = score >= 15
+        score = min(MAX_SCORE, divergence_strength * 4.0)
+        strong = score >= 14
         return ModuleResult(
-            score=round(score, 2),
+            score=round(max(score, 5.0), 2),
             max_score=MAX_SCORE,
             direction="SHORT",
-            reason=f"OI falling {oi_pct:.1f}% while price rising — distribution signal",
+            reason=f"OI falling {oi_pct:.2f}% while price rising — distribution signal",
             strong=strong,
         )
 
     # Mild long: both OI and price falling (panic selling, potential reversal)
-    if oi_pct <= -2.0 and price_pct <= -1.5:
-        score = min(10.0, abs(oi_pct + price_pct) * 1.5)
+    if oi_pct <= -1.0 and price_pct <= -0.8:
+        score = min(12.0, abs(oi_pct + price_pct) * 2.5)
         return ModuleResult(
             score=round(score, 2),
             max_score=MAX_SCORE,
             direction="LONG",
-            reason=f"Mass deleveraging — OI -{abs(oi_pct):.1f}%, price -{abs(price_pct):.1f}%",
+            reason=f"Mass deleveraging — OI -{abs(oi_pct):.2f}%, price -{abs(price_pct):.2f}%",
             strong=False,
         )
 

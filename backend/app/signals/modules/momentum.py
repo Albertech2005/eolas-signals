@@ -110,20 +110,20 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
                         (direction == "SHORT" and price_change_4h < 0)
 
     # Score calculation
-    base_score = min(10.0, abs_price_1h * 4)  # up to 10 from price move
+    base_score = min(12.0, abs_price_1h * 6)  # up to 12 from price move (was 4x → 6x)
 
     volume_bonus = 0.0
     if has_volume and volume_ratio:
-        volume_bonus = min(6.0, (volume_ratio - 1.0) * 3.0)
+        volume_bonus = min(5.0, (volume_ratio - 1.0) * 4.0)
 
-    trend_bonus = 2.0 if trend_aligned else 0.0
+    trend_bonus = 3.0 if trend_aligned else 0.0
     rsi_bonus = 2.0 if rsi is not None and (
         (direction == "LONG" and 40 <= rsi <= 65) or
         (direction == "SHORT" and 35 <= rsi <= 60)
     ) else 0.0
 
     total_score = min(MAX_SCORE, base_score + volume_bonus + trend_bonus + rsi_bonus)
-    strong = total_score >= 14
+    strong = total_score >= 12  # lowered from 14 → 12
 
     vol_str = f"Vol ratio {volume_ratio:.1f}x" if volume_ratio else "vol unknown"
     rsi_str = f"RSI {rsi:.0f}" if rsi else ""

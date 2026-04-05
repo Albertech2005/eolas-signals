@@ -26,10 +26,11 @@ class ModuleResult:
 MAX_SCORE = 20.0
 
 # Funding rate thresholds (per 8h period, as decimal)
-THRESHOLD_EXTREME_LONG = 0.0010   # +0.10% — very bullish consensus → short bias
-THRESHOLD_HIGH_LONG = 0.00005     # TEST MODE: lowered
-THRESHOLD_HIGH_SHORT = -0.00005   # TEST MODE: lowered
-THRESHOLD_EXTREME_SHORT = -0.0001 # TEST MODE: lowered
+# Typical BTC funding: 0.01%/8h (neutral), extreme: >0.05%/8h
+THRESHOLD_EXTREME_LONG  =  0.0003   # +0.03%/8h → longs very crowded → SHORT bias (strong)
+THRESHOLD_HIGH_LONG     =  0.00005  # +0.005%/8h → mild long crowding → SHORT bias (weak)
+THRESHOLD_HIGH_SHORT    = -0.00005  # -0.005%/8h → mild short crowding → LONG bias (weak)
+THRESHOLD_EXTREME_SHORT = -0.0003   # -0.03%/8h → shorts very crowded → LONG bias (strong)
 
 
 def evaluate(data: AggregatedMarketData) -> ModuleResult:

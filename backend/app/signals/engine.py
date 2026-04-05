@@ -136,13 +136,13 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
     short_score = sum(m.score for m in all_shorts)
 
     # Require clear directional consensus
-    if len(strong_longs) >= 2 and long_score > short_score * 1.5:
+    if len(strong_longs) >= 2 and long_score > short_score * 1.2:
         direction = "LONG"
-    elif len(strong_shorts) >= 2 and short_score > long_score * 1.5:
+    elif len(strong_shorts) >= 2 and short_score > long_score * 1.2:
         direction = "SHORT"
-    elif len(strong_longs) == 1 and len(all_longs) >= 3 and long_score > short_score * 2:
+    elif len(strong_longs) == 1 and len(all_longs) >= 3 and long_score > short_score * 1.5:
         direction = "LONG"
-    elif len(strong_shorts) == 1 and len(all_shorts) >= 3 and short_score > long_score * 2:
+    elif len(strong_shorts) == 1 and len(all_shorts) >= 3 and short_score > long_score * 1.5:
         direction = "SHORT"
     # Relaxed consensus: simple majority direction when scores are low
     elif long_score > short_score and long_score > 0:
