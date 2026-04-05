@@ -52,7 +52,7 @@ const MODULES = [
 
 const HOW_IT_FIRES = [
   'All 5 modules score simultaneously on live market data (refreshed every 30s)',
-  'Total score must reach ≥75/100 to generate a signal',
+  'Total score must reach ≥70/100 to generate a signal',
   'At least 2 modules must cast a "strong" directional vote in the same direction',
   'Conflicting strong signals between LONG and SHORT = NO TRADE',
   'Same asset cannot fire again within 30 minutes (cooldown)',
@@ -76,7 +76,7 @@ export default function HowItWorksPage() {
       <div className="bg-surface-card border border-surface-border rounded-xl p-6">
         <h2 className="text-lg font-bold text-white mb-1">The Scoring System</h2>
         <p className="text-gray-400 text-sm mb-6">
-          Each module contributes a score. The total determines signal quality. Below 75/100 = no signal.
+          Each module contributes a score. The total determines signal quality. Below 70/100 = no signal.
         </p>
         <div className="space-y-4">
           {MODULES.map(mod => (

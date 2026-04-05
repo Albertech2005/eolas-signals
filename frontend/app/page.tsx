@@ -9,7 +9,9 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import Image from 'next/image'
 
 
-const WS_URL = (process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000') + '/ws'
+const _rawWsUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:8000'
+// Ensure protocol is ws:// or wss:// — convert https:// if someone set it wrong
+const WS_URL = _rawWsUrl.replace(/^https:\/\//, 'wss://').replace(/^http:\/\//, 'ws://') + '/ws'
 
 // ── Watchlist helpers ────────────────────────────────────────────────────────
 function loadWatchlist(): Set<string> {
@@ -141,7 +143,7 @@ export default function Dashboard() {
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-500">Score threshold ≥75 · Min 2 strong signals</span>
+          <span className="text-xs text-gray-500">Score threshold ≥70 · Min 2 strong signals</span>
         </div>
 
         {isLoading ? (
@@ -155,7 +157,7 @@ export default function Dashboard() {
             </div>
             <p className="text-white font-bold text-lg mb-1">Engine is scanning markets</p>
             <p className="text-gray-500 text-sm max-w-sm mb-4">
-              No high-confidence setups right now. The engine requires ≥75 confidence with at least 2 aligned indicators.
+              No high-confidence setups right now. The engine requires ≥70 confidence with at least 2 aligned indicators.
             </p>
             <div className="flex items-center gap-3">
               <a href="/signals" className="px-4 py-2 text-xs font-semibold text-brand border border-brand/30 rounded-lg hover:bg-brand/10 transition-colors">
@@ -197,7 +199,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
             {sortedMonitoring.map(s => {
               const score   = s.confidence ?? 0
-              const pct     = Math.min(100, (score / 75) * 100)
+              const pct     = Math.min(100, (score / 70) * 100)
               const color   = score >= 65 ? 'text-yellow-400' : score >= 45 ? 'text-gray-400' : 'text-gray-600'
               const delta   = scoreTrends[s.symbol] ?? 0
               const trend   = delta >= 3 ? '↑' : delta <= -3 ? '↓' : null
@@ -231,7 +233,7 @@ export default function Dashboard() {
                     />
                   </div>
                   <div className={cn('text-[10px] font-semibold flex items-center justify-center gap-1', color)}>
-                    {score > 0 ? `${score}/75` : 'Scanning…'}
+                    {score > 0 ? `${score}/70` : 'Scanning…'}
                     {trend && (
                       <span className={trend === '↑' ? 'text-long' : 'text-short'}>{trend}</span>
                     )}
@@ -267,7 +269,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="font-semibold text-white text-sm">Get instant signal alerts on Telegram</p>
-            <p className="text-gray-400 text-xs mt-0.5">Only fires when confidence ≥75. No spam — only high-quality setups.</p>
+            <p className="text-gray-400 text-xs mt-0.5">Only fires when confidence ≥70. No spam — only high-quality setups.</p>
           </div>
         </div>
         <a

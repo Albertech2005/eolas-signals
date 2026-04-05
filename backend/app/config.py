@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ]
 
     # Signal Engine
-    MIN_CONFIDENCE_SCORE: int = 55
+    MIN_CONFIDENCE_SCORE: int = 70
     MIN_STRONG_SIGNALS: int = 2
     SIGNAL_COOLDOWN_MINUTES: int = 30  # don't re-signal same asset within this window
     LOOKBACK_PERIODS: int = 24  # hours for historical context
@@ -52,6 +52,9 @@ class Settings(BaseSettings):
 
     OKX_WS_URL: str = "wss://ws.okx.com:8443/ws/v5/public"
     OKX_REST_URL: str = "https://www.okx.com"
+
+    # Admin
+    ADMIN_SECRET: str = ""  # set this in Railway env vars — required for /admin/reset
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""

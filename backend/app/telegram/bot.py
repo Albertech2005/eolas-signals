@@ -76,7 +76,7 @@ Confidence: <b>{signal.confidence}%</b> {confidence_bar}
 
 👉 <a href="{signal.eolas_url}">Trade on EOLAS DEX</a>
 
-⏱ Signal valid for ~2h. Always use your own risk management.
+⏱ Signal valid for 24h. Always use your own risk management.
 <i>Not financial advice.</i>"""
 
     return msg

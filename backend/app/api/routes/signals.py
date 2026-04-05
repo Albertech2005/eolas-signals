@@ -139,7 +139,8 @@ async def live_evaluation(redis=Depends(get_redis)):
 async def reset_all_data(secret: str = Query(...), db: AsyncSession = Depends(get_db), redis=Depends(get_redis)):
     """Reset all signals and analytics. Requires secret key."""
     from app.config import settings
-    if secret != "eolas-reset-2026":
+    expected = getattr(settings, "ADMIN_SECRET", None)
+    if not expected or secret != expected:
         raise HTTPException(403, "Invalid secret")
 
     from sqlalchemy import text
