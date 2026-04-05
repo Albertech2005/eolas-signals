@@ -19,7 +19,11 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 30  # seconds
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://your-domain.com"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "https://eolas-signals.vercel.app",
+        "https://signal.eolas.fun",
+    ]
 
     # Signal Engine
     MIN_CONFIDENCE_SCORE: int = 55
