@@ -36,7 +36,7 @@ export function ConfidenceGauge({ score, size = 'md', showLabel = true, showBrea
   const progress = (score / 100) * circumference
   const dashOffset = circumference - progress
 
-  const strokeColor = score >= 85 ? '#22c55e' : score >= 70 ? '#eab308' : '#6b7280'
+  const strokeColor = score >= 85 ? '#22c55e' : score >= 70 ? '#84cc16' : '#6b7280'
 
   return (
     <div className="flex flex-col items-center gap-2">

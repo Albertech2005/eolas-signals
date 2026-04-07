@@ -52,7 +52,7 @@ export function getDirectionBg(direction: Direction): string {
 
 export function getConfidenceColor(confidence: number): string {
   if (confidence >= 85) return 'text-green-400'
-  if (confidence >= 70) return 'text-yellow-400'
+  if (confidence >= 70) return 'text-lime-400'
   return 'text-gray-400'
 }
 

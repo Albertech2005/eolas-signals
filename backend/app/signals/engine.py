@@ -183,7 +183,13 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
         if result.score > 0 and result.direction not in ("NEUTRAL",) or module == "Volatility":
             reasons.append(result.reason)
 
-    eolas_url = get_eolas_trade_url(symbol, direction)
+    eolas_url = get_eolas_trade_url(
+        symbol,
+        direction,
+        entry_price=round(price, 6),
+        stop_loss=sl,
+        take_profit=tp1,
+    )
 
     output = SignalOutput(
         symbol=symbol,

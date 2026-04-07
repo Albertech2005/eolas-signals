@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ]
 
     # Signal Engine
-    MIN_CONFIDENCE_SCORE: int = 70
+    MIN_CONFIDENCE_SCORE: int = 70  # signals fire at ≥ this score (keep at 70)
     MIN_STRONG_SIGNALS: int = 2
     SIGNAL_COOLDOWN_MINUTES: int = 30  # don't re-signal same asset within this window
     LOOKBACK_PERIODS: int = 24  # hours for historical context
@@ -87,8 +87,33 @@ EOLAS_MARKET_MAP = {
 }
 
 
-def get_eolas_trade_url(symbol: str, side: str) -> str:
-    """Generate EOLAS DEX trade URL for a given symbol and side."""
+def get_eolas_trade_url(
+    symbol: str,
+    side: str,
+    entry_price: float | None = None,
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
+) -> str:
+    """
+    Generate an EOLAS DEX trade URL that pre-fills the exact signal trade.
+
+    With price levels supplied the URL becomes a deep-link that opens the
+    perp market with side, entry, SL, and TP already populated.
+    Without price levels it falls back to a plain market page link.
+    """
+    from urllib.parse import urlencode
+
     market = EOLAS_MARKET_MAP.get(symbol, {})
     market_id = market.get("market_id", f"PERP_{symbol}_USDC")
-    return f"{settings.EOLAS_BASE_URL}/perp/{market_id}"
+    base = f"{settings.EOLAS_BASE_URL}/perp/{market_id}"
+
+    params: dict = {"side": side.lower()}
+
+    if entry_price and entry_price > 0:
+        params["entry"] = round(entry_price, 6)
+    if stop_loss and stop_loss > 0:
+        params["sl"] = round(stop_loss, 6)
+    if take_profit and take_profit > 0:
+        params["tp"] = round(take_profit, 6)
+
+    return f"{base}?{urlencode(params)}"
