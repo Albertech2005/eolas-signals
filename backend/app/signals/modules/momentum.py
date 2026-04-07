@@ -24,9 +24,9 @@ class ModuleResult:
 MAX_SCORE = 20.0
 
 # Minimum volume ratio to consider meaningful
-MIN_VOLUME_RATIO = 1.0     # TEST MODE: lowered
-# Minimum price move for momentum
-MIN_PRICE_MOVE_PCT = 0.1   # TEST MODE: lowered
+MIN_VOLUME_RATIO = 1.0     # volume must be at or above average 1h volume
+# Minimum price move for momentum signal
+MIN_PRICE_MOVE_PCT = 0.1   # 0.1% minimum 1h move required
 
 
 def compute_rsi(closes: List[float], period: int = 14) -> Optional[float]:

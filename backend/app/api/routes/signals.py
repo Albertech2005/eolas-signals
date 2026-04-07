@@ -135,10 +135,15 @@ async def live_evaluation(redis=Depends(get_redis)):
     }
 
 
-@router.delete("/admin/reset")
-async def reset_all_data(secret: str = Query(...), db: AsyncSession = Depends(get_db), redis=Depends(get_redis)):
-    """Reset all signals and analytics. Requires secret key."""
+@router.post("/admin/reset")
+async def reset_all_data(
+    request: dict,
+    db: AsyncSession = Depends(get_db),
+    redis=Depends(get_redis)
+):
+    """Reset all signals and analytics. Pass {"secret": "..."} in body."""
     from app.config import settings
+    secret = request.get("secret", "")
     expected = getattr(settings, "ADMIN_SECRET", None)
     if not expected or secret != expected:
         raise HTTPException(403, "Invalid secret")

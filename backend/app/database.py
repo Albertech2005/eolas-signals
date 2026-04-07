@@ -20,8 +20,10 @@ elif _db_url.startswith("postgres://"):
 
 engine = create_async_engine(
     _db_url,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=5,
+    pool_size=settings.DATABASE_POOL_SIZE,  # default 5 — safe for Railway free tier
+    max_overflow=2,   # reduced from 5 to stay within Railway Postgres connection limits
+    pool_timeout=30,
+    pool_recycle=1800,  # recycle connections every 30 min to avoid stale connections
     echo=settings.DEBUG,
 )
 

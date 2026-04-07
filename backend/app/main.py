@@ -12,6 +12,10 @@ import orjson
 from app.config import settings
 from app.database import init_db, init_redis, close_connections, get_redis, redis_client
 from app.api.routes import signals, markets, analytics
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.tasks import scheduler
 from app.ingestion import aggregator
 from app.ingestion import liquidation_tracker
@@ -66,9 +70,17 @@ async def initial_fetch():
 
 
 async def ws_broadcast_loop():
-    """Broadcast live signal updates to WebSocket clients."""
+    """Broadcast live market + signal updates to WebSocket clients.
+    Uses cached data only — does NOT re-run the signal engine (scheduler owns that).
+    """
     global _ws_clients
-    last_broadcast = 0
+    from app.signals import engine as signal_engine
+
+    # Local cache of last evaluated signals to avoid re-running engine on every tick
+    _last_signals: dict = {}
+    _last_eval: float = 0
+    EVAL_INTERVAL = 30  # re-evaluate at most every 30s for WS clients
+
     while True:
         await asyncio.sleep(5)
         if not _ws_clients:
@@ -76,8 +88,13 @@ async def ws_broadcast_loop():
 
         try:
             market_data = aggregator.get_cached()
-            from app.signals import engine
-            signals_data = engine.evaluate_all(market_data)
+            if not market_data:
+                continue
+
+            now = asyncio.get_event_loop().time()
+            if now - _last_eval >= EVAL_INTERVAL:
+                _last_signals = signal_engine.evaluate_all(market_data)
+                _last_eval = now
 
             payload = {
                 "type": "signals_update",
@@ -91,7 +108,7 @@ async def ws_broadcast_loop():
                         "is_actionable": s.is_actionable(),
                         "scores": s.scores,
                     }
-                    for s in sorted(signals_data.values(), key=lambda x: x.confidence, reverse=True)
+                    for s in sorted(_last_signals.values(), key=lambda x: x.confidence, reverse=True)
                 ],
                 "market": {
                     sym: {
@@ -116,6 +133,8 @@ async def ws_broadcast_loop():
             logger.error("ws_broadcast_error", error=str(e))
 
 
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
@@ -123,13 +142,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Routers

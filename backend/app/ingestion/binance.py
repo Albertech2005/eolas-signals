@@ -89,7 +89,9 @@ async def fetch_symbol(session: aiohttp.ClientSession, symbol: str) -> Optional[
                 ) * 100
 
             # Volume last 1h
-            data.volume_1h = processed[-1]["volume"] * processed[-1]["close"]
+            # Use last COMPLETED candle ([-1] is current in-progress, often partial volume)
+            if len(processed) >= 2:
+                data.volume_1h = processed[-2]["volume"] * processed[-2]["close"]
 
             # OI change: compare current OI vs estimated from klines volume
             # We'll estimate oi_change from historical OI endpoint below

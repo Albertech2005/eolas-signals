@@ -145,8 +145,11 @@ _MIN_OUTCOME_CHECK_AGE_SECONDS = 10 * 60  # 10-minute grace period before outcom
 async def _check_signal_outcomes(market_data: Dict[str, AggregatedMarketData]):
     """Check if any active signals have hit TP or SL."""
     async with AsyncSessionLocal() as db:
+        # Include HIT_TP1 — these need to keep being tracked for TP2
         result = await db.execute(
-            select(Signal).where(Signal.status == SignalStatus.ACTIVE)
+            select(Signal).where(
+                Signal.status.in_([SignalStatus.ACTIVE, SignalStatus.HIT_TP1])
+            )
         )
         active_signals = result.scalars().all()
 
@@ -304,10 +307,17 @@ async def signal_eval_loop():
                 if not signal.is_actionable():
                     continue
 
-                # Enforce cooldown
-                last_time = _last_signal_time.get(symbol, 0)
+                # Enforce cooldown — check Redis first (survives restarts), fall back to in-memory
                 cooldown_secs = settings.SIGNAL_COOLDOWN_MINUTES * 60
-                if time.time() - last_time < cooldown_secs:
+                cooldown_key = f"signal:cooldown:{symbol}"
+                in_cooldown = False
+                if _redis:
+                    in_cooldown = bool(await _redis.exists(cooldown_key))
+                else:
+                    last_time = _last_signal_time.get(symbol, 0)
+                    in_cooldown = time.time() - last_time < cooldown_secs
+
+                if in_cooldown:
                     logger.debug("signal_cooldown", symbol=symbol)
                     continue
 
@@ -316,6 +326,9 @@ async def signal_eval_loop():
                 if db_signal:
                     new_signals.append(db_signal)
                     _last_signal_time[symbol] = time.time()
+                    # Store cooldown in Redis with TTL so it survives restarts
+                    if _redis:
+                        await _redis.setex(cooldown_key, int(cooldown_secs), "1")
 
                     # Send Telegram alert
                     sent = await telegram.send_signal_alert(signal)
@@ -326,7 +339,7 @@ async def signal_eval_loop():
                             await db.commit()
 
             # Update active signals cache
-            if new_signals or True:  # always refresh cache
+            if new_signals:  # refresh cache when there are updates
                 async with AsyncSessionLocal() as db:
                     result = await db.execute(
                         select(Signal)
