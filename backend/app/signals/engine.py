@@ -65,11 +65,12 @@ def _compute_tp_sl(price: float, direction: str, atr_pct: Optional[float] = None
     tp1_pct = settings.DEFAULT_TP1_PCT
     tp2_pct = settings.DEFAULT_TP2_PCT
 
-    # ATR-based dynamic sizing (more volatility = wider levels)
+    # ATR-based dynamic sizing — SL = 2x ATR, TP1 = 3x ATR, TP2 = 5x ATR
+    # This gives R:R of 1.5 on TP1 and 2.5 on TP2
     if atr_pct:
-        sl_pct = max(settings.DEFAULT_SL_PCT, atr_pct / 100 * 1.5)
-        tp1_pct = max(settings.DEFAULT_TP1_PCT, sl_pct * 1.5)
-        tp2_pct = max(settings.DEFAULT_TP2_PCT, sl_pct * 2.5)
+        sl_pct = max(settings.DEFAULT_SL_PCT, (atr_pct / 100) * 2.0)
+        tp1_pct = max(settings.DEFAULT_TP1_PCT, (atr_pct / 100) * 3.0)
+        tp2_pct = max(settings.DEFAULT_TP2_PCT, (atr_pct / 100) * 5.0)
 
     if direction == "LONG":
         sl = price * (1 - sl_pct)
@@ -135,26 +136,42 @@ def evaluate_symbol(data: AggregatedMarketData) -> SignalOutput:
     long_score = sum(m.score for m in all_longs)
     short_score = sum(m.score for m in all_shorts)
 
-    # Require clear directional consensus
-    if len(strong_longs) >= 2 and long_score > short_score * 1.2:
-        direction = "LONG"
-    elif len(strong_shorts) >= 2 and short_score > long_score * 1.2:
-        direction = "SHORT"
-    elif len(strong_longs) == 1 and len(all_longs) >= 3 and long_score > short_score * 1.5:
-        direction = "LONG"
-    elif len(strong_shorts) == 1 and len(all_shorts) >= 3 and short_score > long_score * 1.5:
-        direction = "SHORT"
-    # Relaxed consensus: simple majority direction when scores are low
-    elif long_score > short_score and long_score > 0:
-        direction = "LONG"
-    elif short_score > long_score and short_score > 0:
-        direction = "SHORT"
-    elif long_score == short_score and long_score > 0:
-        direction = "LONG"  # tiebreak to long
-    else:
+    # ── Contradiction kill switch ──────────────────────────────────────────
+    # If a strong LONG signal AND a strong SHORT signal both exist, the market
+    # is sending conflicting messages. DO NOT trade — it's a coin flip.
+    # (e.g. OI accumulation = LONG, liquidation cascade = SHORT → skip)
+    if strong_longs and strong_shorts:
         return _no_trade(
             symbol, price,
-            "Insufficient directional consensus — conflicting signals",
+            f"Contradictory strong signals — {len(strong_longs)} strong LONG vs "
+            f"{len(strong_shorts)} strong SHORT. Skipping to avoid coin-flip trade.",
+            scores=scores,
+            confidence=confidence,
+        )
+
+    # ── Score margin requirement ───────────────────────────────────────────
+    # The dominant direction must have at least 35% more score than opposing.
+    # Prevents signals from firing on near-equal noise (e.g. 33 vs 31).
+    MARGIN = 1.35
+
+    if len(strong_longs) >= 2 and long_score >= short_score * MARGIN:
+        direction = "LONG"
+    elif len(strong_shorts) >= 2 and short_score >= long_score * MARGIN:
+        direction = "SHORT"
+    elif len(strong_longs) == 1 and len(all_longs) >= 3 and long_score >= short_score * MARGIN:
+        direction = "LONG"
+    elif len(strong_shorts) == 1 and len(all_shorts) >= 3 and short_score >= long_score * MARGIN:
+        direction = "SHORT"
+    elif long_score > 0 and long_score >= short_score * MARGIN:
+        direction = "LONG"
+    elif short_score > 0 and short_score >= long_score * MARGIN:
+        direction = "SHORT"
+    else:
+        margin_pct = round(abs(long_score - short_score) / max(long_score, short_score, 1) * 100, 1)
+        return _no_trade(
+            symbol, price,
+            f"Score margin too thin — LONG {long_score:.1f} vs SHORT {short_score:.1f} "
+            f"({margin_pct}% apart, need 35%). No clear edge.",
             scores=scores,
             confidence=confidence,
         )

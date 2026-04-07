@@ -80,15 +80,18 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     long_ratio = long_liq / total_liq
     short_ratio = short_liq / total_liq
 
+    # Scale factor by absolute USD amount — small liquidations shouldn't max out the score.
+    # $1M+ = full weight, $100k = 32%, $25k (minimum) ≈ 16%
+    amount_factor = min(1.0, (total_liq / 1_000_000) ** 0.5)
+
     # --- SHORTS GETTING LIQUIDATED (short squeeze → LONG) ---
-    # When shorts are wiped out, price tends to keep rising
     if short_ratio >= 0.65:
         intensity = (short_ratio - 0.55) / 0.45  # 0 to 1
-        score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2)
+        score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2 * amount_factor)
         short_liq_m = short_liq / 1e6
         strong = score >= 15
         return ModuleResult(
-            score=round(score, 2),
+            score=round(max(score, 3.0), 2),
             max_score=MAX_SCORE,
             direction="LONG",
             reason=f"Short squeeze in progress — ${short_liq_m:.1f}M shorts liquidated (ratio {short_ratio:.0%})",
@@ -96,14 +99,13 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
         )
 
     # --- LONGS GETTING LIQUIDATED (long cascade → SHORT) ---
-    # Longs getting wiped forces more selling → downward cascade
     if long_ratio >= 0.65:
         intensity = (long_ratio - 0.55) / 0.45
-        score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2)
+        score = min(MAX_SCORE, intensity * MAX_SCORE * 1.2 * amount_factor)
         long_liq_m = long_liq / 1e6
         strong = score >= 15
         return ModuleResult(
-            score=round(score, 2),
+            score=round(max(score, 3.0), 2),
             max_score=MAX_SCORE,
             direction="SHORT",
             reason=f"Long liquidation cascade — ${long_liq_m:.1f}M longs wiped (ratio {long_ratio:.0%})",
@@ -112,7 +114,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
 
     # Moderate imbalance
     if short_ratio >= 0.55:
-        score = (short_ratio - 0.50) * MAX_SCORE * 2
+        score = (short_ratio - 0.50) * MAX_SCORE * 2 * amount_factor
         return ModuleResult(
             score=round(min(score, 12.0), 2),
             max_score=MAX_SCORE,
@@ -122,7 +124,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
         )
 
     if long_ratio >= 0.55:
-        score = (long_ratio - 0.50) * MAX_SCORE * 2
+        score = (long_ratio - 0.50) * MAX_SCORE * 2 * amount_factor
         return ModuleResult(
             score=round(min(score, 12.0), 2),
             max_score=MAX_SCORE,

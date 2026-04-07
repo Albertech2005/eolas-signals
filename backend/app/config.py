@@ -31,10 +31,11 @@ class Settings(BaseSettings):
     SIGNAL_COOLDOWN_MINUTES: int = 30  # don't re-signal same asset within this window
     LOOKBACK_PERIODS: int = 24  # hours for historical context
 
-    # Trade parameters
-    DEFAULT_SL_PCT: float = 0.03   # 3% stop loss
-    DEFAULT_TP1_PCT: float = 0.05  # 5% take profit 1
-    DEFAULT_TP2_PCT: float = 0.09  # 9% take profit 2
+    # Trade parameters — ATR-based sizing preferred (see engine._compute_tp_sl)
+    # These are fallback defaults when ATR is unavailable
+    DEFAULT_SL_PCT: float = 0.04   # 4% stop loss (widened from 3% — volatile alts need room)
+    DEFAULT_TP1_PCT: float = 0.06  # 6% take profit 1 (keeps R:R above 1.5)
+    DEFAULT_TP2_PCT: float = 0.11  # 11% take profit 2
 
     # EOLAS DEX
     EOLAS_BASE_URL: str = "https://perps.eolas.fun"
