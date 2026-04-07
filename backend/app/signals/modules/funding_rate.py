@@ -26,12 +26,15 @@ class ModuleResult:
 MAX_SCORE = 20.0
 
 # Funding rate thresholds (per 8h period, as decimal)
-# Typical BTC/ETH funding: ~0.01%/8h (0.0001) — this is NEUTRAL, not a signal
-# Only flag when funding is meaningfully above/below neutral
-THRESHOLD_EXTREME_LONG  =  0.0008   # +0.08%/8h → truly extreme → SHORT bias (strong)
-THRESHOLD_HIGH_LONG     =  0.0003   # +0.03%/8h → elevated crowding → SHORT bias (weak)
-THRESHOLD_HIGH_SHORT    = -0.0003   # -0.03%/8h → elevated short crowding → LONG bias (weak)
-THRESHOLD_EXTREME_SHORT = -0.0008   # -0.08%/8h → truly extreme → LONG bias (strong)
+#
+# Asymmetric design (intentional):
+#   LONG side: normal market has +0.01%/8h positive funding — only fire on genuinely elevated rates
+#   SHORT side: ANY negative funding is unusual and a real bullish signal → lower threshold
+#
+THRESHOLD_EXTREME_LONG  =  0.0007   # +0.07%/8h → truly extreme → SHORT bias (strong)
+THRESHOLD_HIGH_LONG     =  0.0002   # +0.02%/8h → elevated above neutral → SHORT bias (weak)
+THRESHOLD_HIGH_SHORT    = -0.00005  # -0.005%/8h → any notable negative funding → LONG bias (weak)
+THRESHOLD_EXTREME_SHORT = -0.0004   # -0.04%/8h → extreme negative → LONG bias (strong)
 
 
 def evaluate(data: AggregatedMarketData) -> ModuleResult:

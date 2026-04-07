@@ -37,8 +37,8 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
 
     # --- LONG SIGNAL ---
     # OI rising while price is stalling or dipping = accumulation
-    # Threshold 0.5%: filters out noise (0.05% was too sensitive, triggered on random fluctuations)
-    if oi_pct >= 0.5 and price_pct <= 1.0:
+    # 0.08% threshold: filters pure noise while catching real 1h OI moves
+    if oi_pct >= 0.08 and price_pct <= 1.0:
         divergence_strength = oi_pct - price_pct + 0.5  # base boost so small divergence still scores
         score = min(MAX_SCORE, divergence_strength * 6.0)
         strong = score >= 14
@@ -51,7 +51,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
         )
 
     # OI rising with moderate price rise = trend confirmation (partial)
-    if oi_pct >= 1.0 and 0.3 < price_pct <= 2.5:
+    if oi_pct >= 0.2 and 0.3 < price_pct <= 2.5:
         score = min(MAX_SCORE * 0.6, oi_pct * 3.5)
         return ModuleResult(
             score=round(max(score, 5.0), 2),
