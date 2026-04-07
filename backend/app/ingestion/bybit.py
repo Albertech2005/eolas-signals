@@ -67,19 +67,23 @@ async def fetch_symbol(session: aiohttp.ClientSession, symbol: str) -> Optional[
             data.price_change_4h = (
                 (processed[-1]["close"] - processed[-5]["close"]) / processed[-5]["close"]
             ) * 100
-        if processed:
-            data.volume_1h = processed[-1]["volume"] * processed[-1]["close"]
+        # Use the last COMPLETED candle for volume_1h ([-1] is current in-progress, often incomplete)
+        if len(processed) >= 2:
+            data.volume_1h = processed[-2]["volume"] * processed[-2]["close"]
 
-        # Long/short ratio
-        ls_resp = await _get(session, "/v5/market/account-ratio", {
-            "category": "linear", "symbol": fut_symbol,
-            "period": "1h", "limit": 1
-        })
-        ls_list = ls_resp.get("result", {}).get("list", [])
-        if ls_list:
-            buy_ratio = float(ls_list[0].get("buyRatio", 0.5))
-            sell_ratio = float(ls_list[0].get("sellRatio", 0.5))
-            data.long_short_ratio = buy_ratio / sell_ratio if sell_ratio > 0 else 1.0
+        # Long/short ratio (wrapped separately — failure here shouldn't kill the whole symbol)
+        try:
+            ls_resp = await _get(session, "/v5/market/account-ratio", {
+                "category": "linear", "symbol": fut_symbol,
+                "period": "1h", "limit": 1
+            })
+            ls_list = ls_resp.get("result", {}).get("list", [])
+            if ls_list:
+                buy_ratio = float(ls_list[0].get("buyRatio", 0.5))
+                sell_ratio = float(ls_list[0].get("sellRatio", 0.5))
+                data.long_short_ratio = buy_ratio / sell_ratio if sell_ratio > 0 else 1.0
+        except Exception as e:
+            logger.debug("bybit_ls_ratio_error", symbol=symbol, error=str(e))
 
         # OI history — compute oi_change_1h and oi_change_4h
         try:
