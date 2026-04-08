@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     ]
 
     # Signal Engine
-    MIN_CONFIDENCE_SCORE: int = 70  # signals fire at ≥ this score (keep at 70)
+    MIN_CONFIDENCE_SCORE: int = 60  # signals fire at ≥ this score
     MIN_STRONG_SIGNALS: int = 2
     SIGNAL_COOLDOWN_MINUTES: int = 30  # don't re-signal same asset within this window
     LOOKBACK_PERIODS: int = 24  # hours for historical context

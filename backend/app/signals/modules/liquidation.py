@@ -81,8 +81,8 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     short_ratio = short_liq / total_liq
 
     # Scale factor by absolute USD amount — small liquidations shouldn't max out the score.
-    # $1M+ = full weight, $100k = 32%, $25k (minimum) ≈ 16%
-    amount_factor = min(1.0, (total_liq / 1_000_000) ** 0.5)
+    # $500k+ = full weight, $100k = 45%, $25k (minimum) ≈ 22%
+    amount_factor = min(1.0, (total_liq / 500_000) ** 0.5)
 
     # --- SHORTS GETTING LIQUIDATED (short squeeze → LONG) ---
     if short_ratio >= 0.65:

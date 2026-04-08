@@ -41,7 +41,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     if oi_pct >= 0.08 and price_pct <= 1.0:
         divergence_strength = oi_pct - price_pct + 0.5  # base boost so small divergence still scores
         score = min(MAX_SCORE, divergence_strength * 6.0)
-        strong = score >= 14
+        strong = score >= 12
         return ModuleResult(
             score=round(max(score, 5.0), 2),
             max_score=MAX_SCORE,
@@ -65,7 +65,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     # OI rising while price is pumping strongly = potential top / overleveraged longs
     if oi_pct >= 1.5 and price_pct >= 2.0:
         score = min(MAX_SCORE, (oi_pct + price_pct) * 2.5)
-        strong = score >= 14
+        strong = score >= 12
         return ModuleResult(
             score=round(score, 2),
             max_score=MAX_SCORE,
@@ -78,7 +78,7 @@ def evaluate(data: AggregatedMarketData) -> ModuleResult:
     if oi_pct <= -0.5 and price_pct >= 0.5:
         divergence_strength = abs(oi_pct) + price_pct
         score = min(MAX_SCORE, divergence_strength * 4.0)
-        strong = score >= 14
+        strong = score >= 12
         return ModuleResult(
             score=round(max(score, 5.0), 2),
             max_score=MAX_SCORE,
