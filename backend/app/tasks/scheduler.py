@@ -16,7 +16,6 @@ from app.ingestion import aggregator
 from app.ingestion.base import AggregatedMarketData
 from app.signals import engine
 from app.signals.engine import SignalOutput
-from app.telegram import bot as telegram
 from app.database import AsyncSessionLocal
 from app.models.signal import Signal, SignalDirection, SignalStatus
 from app.models.market import MarketData, SignalPerformanceCache
@@ -330,13 +329,9 @@ async def signal_eval_loop():
                     if _redis:
                         await _redis.setex(cooldown_key, int(cooldown_secs), "1")
 
-                    # Send Telegram alert
-                    sent = await telegram.send_signal_alert(signal)
-                    if sent and db_signal:
-                        async with AsyncSessionLocal() as db:
-                            db_signal.telegram_sent = True
-                            db.add(db_signal)
-                            await db.commit()
+                    # Telegram alerts are handled exclusively by the
+                    # @EOLASSIGNALcopytradebot via eolas_poller, which adds
+                    # the Copy Trade button. Do not send from here.
 
             # Update active signals cache
             if new_signals:  # refresh cache when there are updates
