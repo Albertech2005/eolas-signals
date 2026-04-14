@@ -161,7 +161,7 @@ export function SignalCard({ signal, compact = false, animate = true, currentPri
                 )
               })}
               <p className="text-[10px] text-gray-600 pt-1.5 border-t border-surface-border">
-                Total: <span className="text-white font-mono">{signal.confidence}</span>/100 · fires at ≥45
+                Total: <span className="text-white font-mono">{signal.confidence}</span>/100 · fires at ≥70
               </p>
             </div>
           )}

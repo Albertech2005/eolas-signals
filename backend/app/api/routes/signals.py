@@ -86,11 +86,10 @@ async def latest_signals(
     limit: int = Query(default=10, le=50),
     db: AsyncSession = Depends(get_db),
 ):
-    """Latest signals (excluding NO_TRADE and EXPIRED) sorted by time."""
+    """Latest signals (excluding NO_TRADE) sorted by time — includes expired for history."""
     result = await db.execute(
         select(Signal)
         .where(Signal.direction != SignalDirection.NO_TRADE)
-        .where(Signal.status != SignalStatus.EXPIRED)
         .order_by(desc(Signal.created_at))
         .limit(limit)
     )
