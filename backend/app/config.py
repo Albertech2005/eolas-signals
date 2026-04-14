@@ -33,9 +33,9 @@ class Settings(BaseSettings):
 
     # Trade parameters — ATR-based sizing preferred (see engine._compute_tp_sl)
     # These are fallback defaults when ATR is unavailable
-    DEFAULT_SL_PCT: float = 0.04   # 4% stop loss (widened from 3% — volatile alts need room)
-    DEFAULT_TP1_PCT: float = 0.06  # 6% take profit 1 (keeps R:R above 1.5)
-    DEFAULT_TP2_PCT: float = 0.11  # 11% take profit 2
+    DEFAULT_SL_PCT: float = 0.06   # 6% stop loss — wider buffer, harder to stop out
+    DEFAULT_TP1_PCT: float = 0.03  # 3% take profit 1 — tighter target, faster wins
+    DEFAULT_TP2_PCT: float = 0.055 # 5.5% take profit 2 — tighter extended target
 
     # EOLAS DEX
     EOLAS_BASE_URL: str = "https://perps.eolas.fun"

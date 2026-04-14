@@ -65,12 +65,12 @@ def _compute_tp_sl(price: float, direction: str, atr_pct: Optional[float] = None
     tp1_pct = settings.DEFAULT_TP1_PCT
     tp2_pct = settings.DEFAULT_TP2_PCT
 
-    # ATR-based dynamic sizing — SL = 2x ATR, TP1 = 3x ATR, TP2 = 5x ATR
-    # This gives R:R of 1.5 on TP1 and 2.5 on TP2
+    # ATR-based dynamic sizing — wider SL (3x ATR), tighter TPs (1.5x / 2.5x ATR)
+    # Prioritises faster wins and harder-to-hit stops over raw R:R
     if atr_pct:
-        sl_pct = max(settings.DEFAULT_SL_PCT, (atr_pct / 100) * 2.0)
-        tp1_pct = max(settings.DEFAULT_TP1_PCT, (atr_pct / 100) * 3.0)
-        tp2_pct = max(settings.DEFAULT_TP2_PCT, (atr_pct / 100) * 5.0)
+        sl_pct  = max(settings.DEFAULT_SL_PCT,  (atr_pct / 100) * 3.0)
+        tp1_pct = max(settings.DEFAULT_TP1_PCT, (atr_pct / 100) * 1.5)
+        tp2_pct = max(settings.DEFAULT_TP2_PCT, (atr_pct / 100) * 2.5)
 
     if direction == "LONG":
         sl = price * (1 - sl_pct)
